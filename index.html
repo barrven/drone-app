@@ -1111,6 +1111,14 @@ const semitones = {
     B: 11
 };
 
+const NOTE_BY_SEMITONE =
+    Object.keys(semitones).reduce((acc, note) => {
+
+        acc[semitones[note]] = note;
+
+        return acc;
+    }, []);
+
 /*
     The piano layout spans a full octave plus a fifth (C to the G
     a fifth above the next C), in actual keyboard order (chromatic)
@@ -1605,10 +1613,9 @@ function transposeActive(amount) {
 
     /*
         Shift every currently-playing note by the same number of
-        steps around the circle of fifths, so the interval(s)
-        between them are preserved. Stop-then-restart (rather than
-        a pitch glide) matches how changeOctave() already re-pitches
-        playing drones.
+        semitones, so the interval(s) between them are preserved.
+        Stop-then-restart (rather than a pitch glide) matches how
+        changeOctave() already re-pitches playing drones.
     */
 
     const transposedNotes =
@@ -1618,14 +1625,13 @@ function transposeActive(amount) {
                 parsePianoKeyId(id);
 
             const index =
-                notes.indexOf(note);
+                semitones[note];
 
             const newIndex =
-                (index + amount + notes.length) %
-                notes.length;
+                (index + amount + 12) % 12;
 
             return makePianoKeyId(
-                notes[newIndex],
+                NOTE_BY_SEMITONE[newIndex],
                 octaveOffset
             );
         });
