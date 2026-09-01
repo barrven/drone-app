@@ -1153,10 +1153,14 @@ const PIANO_BLACK_KEY_AFTER = {
 /*
     Note identifiers (used as drones{}/semitones{} keys, notes[]
     indices, etc.) stay plain ASCII — only the displayed label
-    swaps in the proper sharp/flat glyphs. A trailing apostrophe
-    marks a key from the upper octave-and-a-fifth span (e.g. "C'"
-    is one octave above "C") so the two can be told apart as
-    independent, simultaneously-playable keys.
+    swaps in the proper sharp/flat glyphs. Trailing apostrophes
+    mark a key from a higher octave-and-a-fifth span (e.g. "C'"
+    is one octave above "C", "C''" two octaves above) and trailing
+    commas mark a lower one (e.g. "C," is one octave below "C"),
+    so keys at any octave can be told apart as independent,
+    simultaneously-playable notes. This also lets transposeActive()
+    carry a note into a neighboring octave instead of wrapping it
+    back in place.
 */
 
 function formatNoteLabel(note) {
@@ -1169,15 +1173,33 @@ function formatNoteLabel(note) {
 
 function makePianoKeyId(note, octaveOffset) {
 
-    return octaveOffset ? `${note}'` : note;
+    if (octaveOffset > 0) return note + "'".repeat(octaveOffset);
+    if (octaveOffset < 0) return note + ",".repeat(-octaveOffset);
+    return note;
 }
 
 
 function parsePianoKeyId(id) {
 
-    return id.endsWith("'")
-        ? { note: id.slice(0, -1), octaveOffset: 1 }
-        : { note: id, octaveOffset: 0 };
+    const apostropheMatch = id.match(/'+$/);
+
+    if (apostropheMatch) {
+        return {
+            note: id.slice(0, -apostropheMatch[0].length),
+            octaveOffset: apostropheMatch[0].length
+        };
+    }
+
+    const commaMatch = id.match(/,+$/);
+
+    if (commaMatch) {
+        return {
+            note: id.slice(0, -commaMatch[0].length),
+            octaveOffset: -commaMatch[0].length
+        };
+    }
+
+    return { note: id, octaveOffset: 0 };
 }
 
 
@@ -1621,6 +1643,11 @@ function transposeActive(amount) {
         is chromatic, so a step is one semitone; the circle-of-fifths
         layout steps around that wheel instead, matching what ←/→
         visually move you along on screen.
+
+        On the piano layout, stepping past B going up (or past C
+        going down) should land on the next octave's C, not wrap
+        back onto the same one — so the octave offset is carried
+        whenever the semitone index overflows or underflows.
     */
 
     const usesSemitoneStep =
@@ -1640,17 +1667,28 @@ function transposeActive(amount) {
             const stepCount =
                 usesSemitoneStep ? 12 : notes.length;
 
+            const rawIndex =
+                index + amount;
+
             const newIndex =
-                (index + amount + stepCount) % stepCount;
+                ((rawIndex % stepCount) + stepCount) % stepCount;
+
+            const octaveCarry =
+                Math.floor(rawIndex / stepCount);
 
             const newNote =
                 usesSemitoneStep
                     ? NOTE_BY_SEMITONE[newIndex]
                     : notes[newIndex];
 
+            const newOctaveOffset =
+                usesSemitoneStep
+                    ? octaveOffset + octaveCarry
+                    : octaveOffset;
+
             return makePianoKeyId(
                 newNote,
-                octaveOffset
+                newOctaveOffset
             );
         });
 
