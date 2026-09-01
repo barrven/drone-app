@@ -1111,6 +1111,14 @@ const semitones = {
     B: 11
 };
 
+const NOTE_BY_SEMITONE =
+    Object.keys(semitones).reduce((acc, note) => {
+
+        acc[semitones[note]] = note;
+
+        return acc;
+    }, []);
+
 /*
     The piano layout spans a full octave plus a fifth (C to the G
     a fifth above the next C), in actual keyboard order (chromatic)
@@ -1605,11 +1613,18 @@ function transposeActive(amount) {
 
     /*
         Shift every currently-playing note by the same number of
-        steps around the circle of fifths, so the interval(s)
-        between them are preserved. Stop-then-restart (rather than
-        a pitch glide) matches how changeOctave() already re-pitches
-        playing drones.
+        steps, so the interval(s) between them are preserved.
+        Stop-then-restart (rather than a pitch glide) matches how
+        changeOctave() already re-pitches playing drones.
+
+        The step size depends on layout: the keyboard (piano) layout
+        is chromatic, so a step is one semitone; the circle-of-fifths
+        layout steps around that wheel instead, matching what ←/→
+        visually move you along on screen.
     */
+
+    const usesSemitoneStep =
+        currentLayout === "piano";
 
     const transposedNotes =
         activeNotes.map(id => {
@@ -1618,14 +1633,23 @@ function transposeActive(amount) {
                 parsePianoKeyId(id);
 
             const index =
-                notes.indexOf(note);
+                usesSemitoneStep
+                    ? semitones[note]
+                    : notes.indexOf(note);
+
+            const stepCount =
+                usesSemitoneStep ? 12 : notes.length;
 
             const newIndex =
-                (index + amount + notes.length) %
-                notes.length;
+                (index + amount + stepCount) % stepCount;
+
+            const newNote =
+                usesSemitoneStep
+                    ? NOTE_BY_SEMITONE[newIndex]
+                    : notes[newIndex];
 
             return makePianoKeyId(
-                notes[newIndex],
+                newNote,
                 octaveOffset
             );
         });
