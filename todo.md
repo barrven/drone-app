@@ -48,3 +48,16 @@
   - Added `formatNoteLabel()`: replaces `#` with `♯` and a trailing `b` with `♭` for display only — the underlying note identifiers (`drones{}`/`semitones{}` keys, `notes[]` values) stay plain ASCII so lookups are unaffected. Used everywhere a note name is rendered: circle labels, piano-layout labels, and the "Playing: …" status line.
 - [x] Add a button to toggle between the circle-of-fifths layout and the piano keyboard layout.
   - Added `currentLayout` state, `toggleLayout()`, and a `#layoutToggle` button (label flips between "Piano Layout"/"Circle Layout" via `updateLayoutButton()`). `renderNotes()` now branches: piano mode builds a 12-column CSS grid of note buttons (`.layout-piano .note`), with sharps/flats styled as raised black keys via a `.black-key` class from `note.includes("#") || note.includes("b")`; circle mode is the original radial layout. Both share `toggleNote()`, `updateNoteStyles()`, and `formatNoteLabel()`.
+
+## 8. Transposition fixes (closed GitHub issues)
+- [x] (#1) Review transposition when using left/right arrow keys to move selected notes up or down.
+  - Intervals between selected notes weren't being preserved correctly; a single right-arrow press should move all selected notes up exactly one semitone (left arrow down one semitone). Fixed in `c44535a` — arrow-key transposition now shifts by semitones instead of by circle-of-fifths steps.
+- [x] (#3) Transposition function resets at octave.
+  - Transposing up/down through a note name (e.g. C) reset back to the same octave instead of carrying into the next/previous octave. Fixed in `a7ee896` — transpose now carries the octave forward instead of resetting it.
+
+## 9. Keyboard bindings — letter keys for notes
+- [x] Update key mapping so notes can be started with letter keys (e.g. `C`, `D`, `E`...).
+  - For notes that aren't a plain letter (sharps/flats, e.g. A-flat), map `Shift`+letter to the flat/sharp variant instead.
+  - Added a `LETTER_NOTE_MAP` (C/D/E/F/G/A/B → plain note, plus a `shifted` variant) modeled on piano key layout: Shift+C/D/F/G/A give the five altered notes the app actually uses (Db, Eb, F#, Ab, Bb — the black keys above C, D, F, G, A respectively); E and B have no black key above them, so Shift+E/B are no-ops. Letter keys call `toggleNote()` directly (same start/stop toggle as clicking), guarded against Ctrl/Cmd/Alt so browser shortcuts (Cmd+C, Cmd+F, etc.) aren't hijacked, and against `isFormField()` like the existing arrow/octave keys.
+  - Verified with a scripted Playwright session against the real app (google-chrome, no dev-only mocks): `c` toggles C on/off, `d` starts D, `Shift+d` adds Eb while D keeps playing (intervals/other notes unaffected), `Shift+e` is correctly a no-op, and Escape still stops everything.
+  - Updated the on-page hint text to mention the new letter-key bindings.

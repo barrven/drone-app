@@ -866,7 +866,7 @@ input[type="range"] {
             role="dialog"
             aria-label="Tips and instructions"
             hidden>
-            Click notes to toggle sustained drones. Keyboard: ← / → transpose playing notes, ↑ / ↓ volume, + / − octave, Esc stop all.
+            Click notes to toggle sustained drones. Keyboard: letter keys (C D E F G A B, Shift for ♯/♭) toggle notes, ← / → transpose playing notes, ↑ / ↓ volume, + / − octave, Esc stop all.
         </div>
     </div>
 
@@ -2361,6 +2361,23 @@ function isFormField(el) {
     );
 }
 
+/*
+    Letter keys start/stop notes directly, laid out like a piano:
+    the natural-letter key plays the white key, Shift+letter plays
+    the black key immediately above it (no black key above E or B,
+    so those have no shifted variant).
+*/
+
+const LETTER_NOTE_MAP = {
+    c: { plain: "C", shifted: "Db" },
+    d: { plain: "D", shifted: "Eb" },
+    e: { plain: "E", shifted: null },
+    f: { plain: "F", shifted: "F#" },
+    g: { plain: "G", shifted: "Ab" },
+    a: { plain: "A", shifted: "Bb" },
+    b: { plain: "B", shifted: null }
+};
+
 document.addEventListener("keydown", (event) => {
 
     const key = event.key;
@@ -2378,6 +2395,24 @@ document.addEventListener("keydown", (event) => {
     }
 
     if (isFormField(document.activeElement)) return;
+
+    const letterEntry =
+        !event.ctrlKey && !event.metaKey && !event.altKey
+            ? LETTER_NOTE_MAP[key.toLowerCase()]
+            : undefined;
+
+    if (letterEntry) {
+
+        const note = event.shiftKey ? letterEntry.shifted : letterEntry.plain;
+
+        if (note) {
+            event.preventDefault();
+            initAudio();
+            toggleNote(note);
+        }
+
+        return;
+    }
 
     if (
         key !== "ArrowLeft" &&
