@@ -1433,15 +1433,19 @@ function updateLayoutButton() {
 }
 
 
-function toggleLayout() {
+function setLayout(layout) {
 
-    currentLayout =
-        currentLayout === "circle"
-            ? "piano"
-            : "circle";
+    if (currentLayout === layout) return;
+
+    currentLayout = layout;
 
     renderNotes();
     updateLayoutButton();
+}
+
+
+function toggleLayout() {
+    setLayout(currentLayout === "circle" ? "piano" : "circle");
 }
 
 
@@ -2412,6 +2416,17 @@ document.addEventListener("keydown", (event) => {
         }
 
         return;
+    }
+
+    if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+
+        const lowerKey = key.toLowerCase();
+
+        if (lowerKey === "o" || lowerKey === "p") {
+            event.preventDefault();
+            setLayout(lowerKey === "o" ? "circle" : "piano");
+            return;
+        }
     }
 
     if (
