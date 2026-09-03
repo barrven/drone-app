@@ -1606,6 +1606,10 @@ function renderNotes() {
         .querySelectorAll(".note")
         .forEach(el => el.remove());
 
+    document
+        .querySelectorAll(".piano")
+        .forEach(el => el.remove());
+
     if (currentLayout === "piano") {
 
         const piano =
